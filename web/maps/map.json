@@ -42,6 +42,12 @@
             "x": 4,
             "y": 0,
             "h": 2
+        },
+        {
+            "tile": "Character Horn Girl",
+            "x": 9,
+            "y": 1,
+            "h": 2
         }
     ]
 }
