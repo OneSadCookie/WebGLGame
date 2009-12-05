@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spinning Box</title>
+    <script src="webglutils.js"> </script>
+    <script src="game.js"> </script>
+    <script id="pixels-vert" type="x-shader/x-vertex">
+        uniform vec2 window_size;
+
+        varying vec2 texture_coords;
+        
+        attribute vec2 position;
+        attribute vec2 tc_in;
+
+        void main()
+        {
+            gl_Position = vec4((position / window_size) * 2.0 - 1.0, 0, 1);
+            texture_coords = tc_in;
+        }
+    </script>
+
+    <script id="boring-frag" type="x-shader/x-fragment">
+        uniform sampler2D texture;
+
+        varying vec2 texture_coords;
+
+        void main()
+        {
+            gl_FragColor = texture2D(texture, texture_coords);
+        }
+    </script>
+
+    <style type="text/css">
+        body {
+            margin:0;
+            background-color: black;
+        }
+        canvas {
+            position:absolute;
+            width:100%;
+            height:100%;
+        }
+        #framerate {
+            position:absolute;
+            bottom:20px;
+            left:20px;
+            font-size:12pt;
+            color: white;
+            font-family: 'Lucida Grande';
+        }
+    </style>
+</head>
+<body onload="start()">
+    <div id="framerate"></div>
+    <canvas id="game">
+        Please install a browser capable of WebGL, and enable WebGL, to see
+        this content.
+    </canvas>
+  </body>
+</html>
