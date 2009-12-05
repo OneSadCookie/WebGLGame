@@ -25,12 +25,79 @@ KEY_UP = 38
 KEY_RIGHT = 39
 KEY_DOWN = 40
 
-function passable(x, y, h)
+function tile_at(x, y, h)
 {
-    return x < map['width'] && x >= 0 &&
-        y < map['height'] && y >= 0 &&
-        h < map['planes'].size() && h >= 0 &&
-        !map['planes'][h][x + map['width'] * y]
+    var plane = map['planes'][h]
+    if (plane)
+    {
+        return plane[x + map['width'] * y]
+    }
+    else
+    {
+        return null
+    }
+}
+
+function rampTile(dx, dy)
+{
+    if (dx == 0)
+    {
+        if (dy == -1)
+        {
+            return "Ramp North"
+        }
+        else
+        {
+            return "Ramp South"
+        }
+    }
+    else if (dx == -1)
+    {
+        return "Ramp East"
+    }
+    else
+    {
+        return "Ramp West"
+    }
+    
+    console.log('Weird dx/dy combination in rampTile')
+}
+
+function doMove(object, dx, dy)
+{
+    var new_x = object.x + dx
+    var new_y = object.y + dy
+    
+     if (new_x >= map['width']  || new_x < 0 ||
+         new_y >= map['height'] || new_y < 0)
+    {
+        return
+    }
+    
+    var current_tile = tile_at(object.x, object.y, object.h - 1)
+    var next_tile_wall = tile_at(object.x + dx, object.y + dy, object.h)
+    var next_tile_ground = tile_at(object.x + dx, object.y + dy, object.h - 1)
+    if (!next_tile_wall && next_tile_ground)
+    {
+        object.x += dx
+        object.y += dy
+    }
+    else if (next_tile_wall == rampTile(dx, dy))
+    {
+        object.x += dx
+        object.y += dy
+        object.h += 1
+    }
+    else if (current_tile == rampTile(-dx, -dy))
+    {
+        var next_tile_ground2 = tile_at(object.x + dx, object.y + dy, object.h - 2)
+        if (!next_tile_ground && next_tile_ground2)
+        {
+            object.x += dx
+            object.y += dy
+            object.h -= 1
+        }
+    }
 }
 
 function makeBuffer(gl, target, data)
@@ -321,16 +388,16 @@ function keydown(event)
     switch(event.keyCode)
     {
     case KEY_LEFT:
-        if (passable(pc.x - 1, pc.y, pc.h)) pc.x -= 1
+        doMove(pc, -1, 0)
         break
     case KEY_RIGHT:
-        if (passable(pc.x + 1, pc.y, pc.h)) pc.x += 1
+        doMove(pc,  1, 0)
         break
     case KEY_DOWN:
-        if (passable(pc.x, pc.y + 1, pc.h)) pc.y += 1
+        doMove(pc, 0,  1)
         break
     case KEY_UP:
-        if (passable(pc.x, pc.y - 1, pc.h)) pc.y -= 1
+        doMove(pc, 0, -1)
         break
     }
     update_scroll()
