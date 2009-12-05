@@ -144,7 +144,7 @@ function init()
     var gl = initWebGL('game')
     
     var resman = new ResourceManager(
-        9, // total # of expected resources to load
+        9, // total # of expected resources to load, set to 0 and watch console log if it's wrong
         function (name) // progress
         {
             // console.log('Loaded: ' + name)
