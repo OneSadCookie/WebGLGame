@@ -7,6 +7,8 @@ textures = {}
 images = {}
 tilemetrics = null
 drawCommands = []
+object_vbo = null
+object_ebo = null
 
 scroll_x = 0
 scroll_y = 0
@@ -273,17 +275,16 @@ function makeDrawCommandForObject(gl, object, height)
         m.x      , m.y + m.h ])
     e_array = e_array.concat([0, 1, 2, 0, 2, 3])
     
+    gl.bindBuffer(gl.ARRAY_BUFFER, object_vbo)
+    gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(pos_array.concat(tc_array)), gl.STREAM_DRAW)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, object_ebo)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(e_array), gl.STREAM_DRAW)
+    
     return {
-        'vbo': makeBuffer(
-            gl,
-            gl.ARRAY_BUFFER,
-            new WebGLFloatArray(pos_array.concat(tc_array))),
+        'vbo': object_vbo,
         'pos_offset': 0,
         'tc_offset': 4 * 8,
-        'ebo': makeBuffer(
-            gl,
-            gl.ELEMENT_ARRAY_BUFFER,
-            new WebGLUnsignedShortArray(e_array)),
+        'ebo': object_ebo,
         'count': 6,
         'texture': textures['tiles'],
         'image': images['tiles'],
@@ -294,6 +295,8 @@ function makeDrawCommandForObject(gl, object, height)
 function init()
 {
     var gl = initWebGL('game')
+    object_vbo = gl.createBuffer()
+    object_ebo = gl.createBuffer()
     
     var resman = new ResourceManager(
         9, // total # of expected resources to load, set to 0 and watch console log if it's wrong
