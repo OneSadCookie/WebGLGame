@@ -6,8 +6,10 @@ program = null
 textures = {}
 images = {}
 tilemetrics = null
-
 drawCommands = []
+
+scroll_x = 0
+scroll_y = 0
 
 TEXTURE_FILES = ['tiles']
 
@@ -65,6 +67,7 @@ function loadPlanes(gl, width, height, planes)
                     bx + TILE_WIDTH, by + TILE_HEIGHT,
                     bx, by + TILE_HEIGHT])
                 var m = tilemetrics[tile]
+                if (!m) console.error('No metrics for ' + tile)
                 tc_array = tc_array.concat([
                     m.x      , m.y      ,
                     m.x + m.w, m.y      ,
@@ -115,6 +118,7 @@ function makeDrawCommandForObject(gl, object, height)
         bx + TILE_WIDTH, by + TILE_HEIGHT,
         bx, by + TILE_HEIGHT])
     var m = tilemetrics[tile]
+    if (!m) console.error('No metrics for ' + tile)
     tc_array = tc_array.concat([
         m.x      , m.y      ,
         m.x + m.w, m.y      ,
@@ -165,7 +169,7 @@ function init()
             $('progress-box').style.borderColor = 'red'
         })
     
-    linkProgram('shaders/pixels.vert', 'shaders/boring.frag', gl, resman, function (p)
+    linkProgram('shaders/tiles.vert', 'shaders/boring.frag', gl, resman, function (p)
     {
         program = p
     })
@@ -189,6 +193,8 @@ function init()
             map = json
 
             loadPlanes(gl, map['width'], map['height'], map['planes'])
+            
+            update_scroll()
         })
     })
     
@@ -245,8 +251,8 @@ function draw(gl)
     
     reshape(gl)
     gl.clearColor(0.0, 0xcc / 255.0, 1.0, 1.0)
-    $('framerate').style.backgroundColor = '#00ccff'
-    $('ack').style.backgroundColor = '#00ccff'
+    // $('framerate').style.backgroundColor = '#00ccff'
+    // $('ack').style.backgroundColor = '#00ccff'
     gl.clear(gl.COLOR_BUFFER_BIT)
     
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
@@ -257,6 +263,11 @@ function draw(gl)
         gl.getUniformLocation(program, 'window_size'),
         width,
         height)
+    var bx = (scroll_x + HACK_OFFSET) * TILE_WIDTH
+    var by = (map['height'] - scroll_y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT
+    gl.uniform2f(
+        gl.getUniformLocation(program, 'scroll'),
+        bx, by)
     gl.uniform1i(
         gl.getUniformLocation(program, 'texture'),
         0)
@@ -273,7 +284,12 @@ function draw(gl)
         
         map['objects'].each(function(object)
         {
-            drawCommand(gl, makeDrawCommandForObject(gl, object, map['height']))
+            if (object.y == y)
+            {
+                drawCommand(
+                    gl,
+                    makeDrawCommandForObject(gl, object, map['height']))
+            }
         })
     })
     
@@ -284,6 +300,12 @@ function draw(gl)
     {
         console.log('GL Error: ' + e)
     }
+}
+
+function update_scroll()
+{
+    scroll_x = map['objects'][0].x - 4
+    scroll_y = map['objects'][0].y + 1
 }
 
 function start()
@@ -311,6 +333,7 @@ function keydown(event)
         if (passable(pc.x, pc.y - 1, pc.h)) pc.y -= 1
         break
     }
+    update_scroll()
 }
 
 function keyup(event)

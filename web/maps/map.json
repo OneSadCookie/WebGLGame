@@ -1,24 +1,47 @@
 {
-    "width": 3,
-    "height": 3,
+    "width": 10,
+    "height": 7,
     "planes": [
         [
-            "Grass Block", "Dirt Block", "Brown Block",
-            "Stone Block", "Water Block", "Wall Block",
-            "Roof South West", "Roof South", "Roof South East"
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            null,          null,         null,          "Water Block", null,          null,         null,          null,          null,          null,         
+            "Grass Block", "Grass Block","Grass Block", "Water Block", "Grass Block", "Grass Block","Grass Block", "Grass Block", "Grass Block", "Grass Block"
         ],
         [
-            null, null, "Tree Tall",
-            null, null, "Tree Short",
-            null, null, null
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Grass Block", "Grass Block", null,          "Dirt Block",  "Stone Block", 
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Grass Block", "Grass Block", null,          "Dirt Block",  "Stone Block", 
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Grass Block", "Grass Block", null,          "Dirt Block",  "Stone Block", 
+            "Stone Block", "Stone Block", "Stone Block", null,         "Stone Block", "Stone Block", "Grass Block", null,          "Dirt Block",  "Stone Block", 
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Stone Block", "Grass Block", "Stone Block", "Stone Block", "Stone Block", 
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Stone Block", "Stone Block", "Stone Block", "Stone Block", "Stone Block", 
+            "Grass Block", "Grass Block", "Grass Block", null,         "Grass Block", "Grass Block", "Grass Block", "Grass Block", "Grass Block", "Grass Block"
+        ],
+        [
+            null,        null,   null,        null,          null,        null,        null,         "Stone Block Tall", null,               null,
+            "Tree Tall", null,   null,        null,          null,        null,        "Tree Short", "Stone Block Tall", null,               null,
+            null,        null,   null,        null,          null,        null,        null,         "Stone Block Tall", null,               null,
+            null,        null,   "Ramp West", "Stone Block", "Ramp East", null,        null,         "Stone Block Tall", null,               null,
+            null,        null,   null,        null,          null,        null,        null,         "Stone Block Tall", "Door Tall Closed", "Stone Block Tall",
+            null,        "Rock", null,        null,          null,        null,        null,         null,               null,               null,
+            null,        null,   null,        null,          null,        "Tree Tall", null,         null,               null,               null
         ]
     ],
     "objects": [
         {
             "tile": "Character Cat Girl",
             "x": 0,
-            "y": 1,
-            "h": 1
+            "y": 0,
+            "h": 2
+        },
+        {
+            "tile": "Key",
+            "x": 4,
+            "y": 0,
+            "h": 2
         }
     ]
 }
