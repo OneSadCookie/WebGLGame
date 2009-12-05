@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL Game</title>
+    <link rel="stylesheet" type="text/css" href="style/game.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/prototype/1.6.1.0/prototype.js"></script>
+    <script src="scripts/resourcemanager.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/webglutils.js"></script>
+    <script src="scripts/framerate.js"></script>
+    <script src="scripts/tilelist.js"></script>
+    <script src="scripts/game.js"></script>
+</head>
+<body onload="start()" onkeydown="keydown(event)" onkeyup="keyup(event)">
+    <canvas id="game">
+        Please install a browser capable of WebGL, and enable WebGL, to see
+        this content.
+    </canvas>
+    <div id="ack">"<a href="http://lostgarden.com/2007/05/dancs-miraculously-flexible-game.html">Planet Cute</a>" art by Daniel Cook (<a href="http://lostgarden.com/">Lostgarden.com</a>) </div>
+    <div id="framerate"></div>
+    <div id="progress-box">
+        <div id="progress-bar"></div>
+    </div>
+  </body>
+</html>

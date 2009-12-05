@@ -4,8 +4,13 @@ function xhrText(url, resman, closure)
         method: 'get',
         onSuccess: function(transport)
         {
-            resman.loaded('xhr/text of ' + url)
             closure(transport.responseText)
+            resman.loaded('xhr/text of ' + url)
+        },
+        onException: function(request, exception)
+        {
+            resman.error('xhr/text of ' + url)
+            console.error(exception)
         },
         onFailure: function(transport)
         {
@@ -21,8 +26,13 @@ function xhrJSON(url, resman, closure)
         evalJSON: 'force',
         onSuccess: function(transport)
         {
-            resman.loaded('xhr/json of ' + url)
             closure(transport.responseJSON)
+            resman.loaded('xhr/json of ' + url)
+        },
+        onException: function(request, exception)
+        {
+            resman.error('xhr/json of ' + url)
+            console.error(exception)
         },
         onFailure: function(transport)
         {
