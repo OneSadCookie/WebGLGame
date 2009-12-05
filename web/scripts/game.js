@@ -3,11 +3,10 @@ height = 1
 
 loaded = false
 program = null
-image = null
 textures = {}
 images = {}
 tilemetrics = null
-map = null
+
 drawCommands = []
 
 TEXTURE_FILES = ['tiles']
@@ -24,6 +23,14 @@ KEY_UP = 38
 KEY_RIGHT = 39
 KEY_DOWN = 40
 
+function passable(x, y, h)
+{
+    return x < map['width'] && x >= 0 &&
+        y < map['height'] && y >= 0 &&
+        h < map['planes'].size() && h >= 0 &&
+        !map['planes'][h][x + map['width'] * y]
+}
+
 function makeBuffer(gl, target, data)
 {
     var bo = gl.createBuffer()
@@ -34,109 +41,103 @@ function makeBuffer(gl, target, data)
 
 function loadPlanes(gl, width, height, planes)
 {
-    var pos_array = []
-    var tc_array = []
-    var e_array = []
-    
-    // TODO multiple planes
-    var x = 0
-    var y = height - 1
-    var ix = 0
-    var e_count = 0
-    planes[0].each(function (tile) {
-        var bx = x + HACK_OFFSET
-        var by = y + HACK_OFFSET
-        pos_array = pos_array.concat([
-            (bx + 0) * TILE_WIDTH, by * TILE_GROUND_HEIGHT,
-            (bx + 1) * TILE_WIDTH, by * TILE_GROUND_HEIGHT,
-            (bx + 1) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_HEIGHT,
-            (bx + 0) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_HEIGHT ])
-        var m = tilemetrics[tile]
-        tc_array = tc_array.concat([
-            m.x      , m.y      ,
-            m.x + m.w, m.y      ,
-            m.x + m.w, m.y + m.h,
-            m.x      , m.y + m.h ])
-        e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
-        ix += 4
-        e_count += 6
+    for (var y = 0; y < height; ++y)
+    {
+        var pos_array = []
+        var tc_array = []
+        var e_array = []
+        var ix = 0
+        var e_count = 0
         
-        x += 1
-        if (x >= width)
+        for (var x = 0; x < width; ++x)
         {
-            x = 0
-            y -= 1
+            for (var h = 0; h < planes.size(); ++h)
+            {
+                tile = planes[h][x + y * width]
+                if (!tile) continue
+                
+                var bx = (x + HACK_OFFSET) * TILE_WIDTH
+                var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
+                    h * TILE_FRONT_HEIGHT
+                pos_array = pos_array.concat([
+                    bx, by,
+                    bx + TILE_WIDTH, by,
+                    bx + TILE_WIDTH, by + TILE_HEIGHT,
+                    bx, by + TILE_HEIGHT])
+                var m = tilemetrics[tile]
+                tc_array = tc_array.concat([
+                    m.x      , m.y      ,
+                    m.x + m.w, m.y      ,
+                    m.x + m.w, m.y + m.h,
+                    m.x      , m.y + m.h ])
+                e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
+                ix += 4
+                e_count += 6
+            }
         }
-    })
-    
-    drawCommands.push({
-        'vbo': makeBuffer(
-            gl,
-            gl.ARRAY_BUFFER,
-            new WebGLFloatArray(pos_array.concat(tc_array))),
-        'pos_offset': 0,
-        'tc_offset': ix * 8,
-        'ebo': makeBuffer(
-            gl,
-            gl.ELEMENT_ARRAY_BUFFER,
-            new WebGLUnsignedShortArray(e_array)),
-        'count': e_count,
-        'texture': textures['tiles'],
-        'image': images['tiles'],
-        'mode': gl.TRIANGLES
-    })
+        
+        drawCommands.push({
+            'vbo': makeBuffer(
+                gl,
+                gl.ARRAY_BUFFER,
+                new WebGLFloatArray(pos_array.concat(tc_array))),
+            'pos_offset': 0,
+            'tc_offset': ix * 8,
+            'ebo': makeBuffer(
+                gl,
+                gl.ELEMENT_ARRAY_BUFFER,
+                new WebGLUnsignedShortArray(e_array)),
+            'count': e_count,
+            'texture': textures['tiles'],
+            'image': images['tiles'],
+            'mode': gl.TRIANGLES
+        })
+    }
 }
 
-function loadScenery(gl, scenery)
+function makeDrawCommandForObject(gl, object, height)
 {
     var pos_array = []
     var tc_array = []
     var e_array = []
     
-    // TODO multiple planes
-    var ix = 0
-    var e_count = 0
-    scenery.each(function (prop) {
-        var bx = prop.x + HACK_OFFSET
-        var by = prop.y + HACK_OFFSET
-        // TODO height
-        pos_array = pos_array.concat([
-            (bx + 0) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_FRONT_HEIGHT,
-            (bx + 1) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_FRONT_HEIGHT,
-            (bx + 1) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_FRONT_HEIGHT + TILE_HEIGHT,
-            (bx + 0) * TILE_WIDTH, by * TILE_GROUND_HEIGHT + TILE_FRONT_HEIGHT + TILE_HEIGHT ])
-        var m = tilemetrics[prop.type]
-        tc_array = tc_array.concat([
-            m.x      , m.y      ,
-            m.x + m.w, m.y      ,
-            m.x + m.w, m.y + m.h,
-            m.x      , m.y + m.h ])
-        e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
-        ix += 4
-        e_count += 6
-    })
+    var x = object.x
+    var y = object.y
+    var h = object.h
+    var tile = object.tile
     
-    drawCommands.push({
+    var bx = (x + HACK_OFFSET) * TILE_WIDTH
+    var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
+        h * TILE_FRONT_HEIGHT
+    pos_array = pos_array.concat([
+        bx, by,
+        bx + TILE_WIDTH, by,
+        bx + TILE_WIDTH, by + TILE_HEIGHT,
+        bx, by + TILE_HEIGHT])
+    var m = tilemetrics[tile]
+    tc_array = tc_array.concat([
+        m.x      , m.y      ,
+        m.x + m.w, m.y      ,
+        m.x + m.w, m.y + m.h,
+        m.x      , m.y + m.h ])
+    e_array = e_array.concat([0, 1, 2, 0, 2, 3])
+    
+    return {
         'vbo': makeBuffer(
             gl,
             gl.ARRAY_BUFFER,
             new WebGLFloatArray(pos_array.concat(tc_array))),
         'pos_offset': 0,
-        'tc_offset': ix * 8,
+        'tc_offset': 4 * 8,
         'ebo': makeBuffer(
             gl,
             gl.ELEMENT_ARRAY_BUFFER,
             new WebGLUnsignedShortArray(e_array)),
-        'count': e_count,
+        'count': 6,
         'texture': textures['tiles'],
         'image': images['tiles'],
         'mode': gl.TRIANGLES
-    })
-}
-
-function loadObjects(gl, objects)
-{
-    
+    }
 }
 
 function init()
@@ -188,8 +189,6 @@ function init()
             map = json
 
             loadPlanes(gl, map['width'], map['height'], map['planes'])
-            loadScenery(gl, map['scenery'])
-            loadObjects(gl, map['objects'])
         })
     })
     
@@ -206,6 +205,38 @@ function reshape(gl)
     height = canvas.clientHeight
     
     gl.viewport(0, 0, width, height)
+}
+
+function drawCommand(gl, command)
+{
+    gl.uniform2f(
+        gl.getUniformLocation(program, 'image_size'),
+        command.image.width,
+        command.image.height)
+    gl.bindTexture(gl.TEXTURE_2D, command.texture)
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, command.vbo)
+    gl.vertexAttribPointer(
+        pos_loc,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        command.v_offset)
+    gl.vertexAttribPointer(
+        tc_loc,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        command.tc_offset)
+    
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, command.ebo)
+    gl.drawElements(
+        command.mode,
+        command.count,
+        gl.UNSIGNED_SHORT,
+        0)
 }
 
 function draw(gl)
@@ -236,36 +267,14 @@ function draw(gl)
     gl.enableVertexAttribArray(pos_loc)
     gl.enableVertexAttribArray(tc_loc)
     
-    drawCommands.each(function (command)
+    drawCommands.each(function (command, y)
     {
-        gl.uniform2f(
-            gl.getUniformLocation(program, 'image_size'),
-            command.image.width,
-            command.image.height)
-        gl.bindTexture(gl.TEXTURE_2D, command.texture)
+        drawCommand(gl, command)
         
-        gl.bindBuffer(gl.ARRAY_BUFFER, command.vbo)
-        gl.vertexAttribPointer(
-            pos_loc,
-            2,
-            gl.FLOAT,
-            false,
-            0,
-            command.v_offset)
-        gl.vertexAttribPointer(
-            tc_loc,
-            2,
-            gl.FLOAT,
-            false,
-            0,
-            command.tc_offset)
-        
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, command.ebo)
-        gl.drawElements(
-            command.mode,
-            command.count,
-            gl.UNSIGNED_SHORT,
-            0)
+        map['objects'].each(function(object)
+        {
+            drawCommand(gl, makeDrawCommandForObject(gl, object, map['height']))
+        })
     })
     
     gl.flush()
@@ -285,22 +294,23 @@ function start()
 }
 
 function keydown(event)
-{/*
+{
+    pc = map['objects'][0]
     switch(event.keyCode)
     {
     case KEY_LEFT:
-        pc.x -= 1
+        if (passable(pc.x - 1, pc.y, pc.h)) pc.x -= 1
         break
     case KEY_RIGHT:
-        pc.x += 1
+        if (passable(pc.x + 1, pc.y, pc.h)) pc.x += 1
         break
     case KEY_DOWN:
-        pc.y -= 1
+        if (passable(pc.x, pc.y + 1, pc.h)) pc.y += 1
         break
     case KEY_UP:
-        pc.y += 1
+        if (passable(pc.x, pc.y - 1, pc.h)) pc.y -= 1
         break
-    }*/
+    }
 }
 
 function keyup(event)
