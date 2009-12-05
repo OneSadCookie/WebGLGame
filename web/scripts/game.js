@@ -25,8 +25,14 @@ KEY_UP = 38
 KEY_RIGHT = 39
 KEY_DOWN = 40
 
-function tile_at(x, y, h)
+function tileAt(x, y, h)
 {
+    if (x < 0 || x >= map['width'] ||
+        y < 0 || y >= map['height'])
+    {
+        return null
+    }
+    
     var plane = map['planes'][h]
     if (plane)
     {
@@ -36,6 +42,12 @@ function tile_at(x, y, h)
     {
         return null
     }
+}
+
+function sTileAt(x, y, h)
+{
+    var tile = tileAt(x, y, h)
+    return tile && tile.match(/Block/)
 }
 
 function rampTile(dx, dy)
@@ -74,9 +86,9 @@ function doMove(object, dx, dy)
         return
     }
     
-    var current_tile = tile_at(object.x, object.y, object.h - 1)
-    var next_tile_wall = tile_at(object.x + dx, object.y + dy, object.h)
-    var next_tile_ground = tile_at(object.x + dx, object.y + dy, object.h - 1)
+    var current_tile = tileAt(object.x, object.y, object.h - 1)
+    var next_tile_wall = tileAt(object.x + dx, object.y + dy, object.h)
+    var next_tile_ground = tileAt(object.x + dx, object.y + dy, object.h - 1)
     if (!next_tile_wall && next_tile_ground)
     {
         object.x += dx
@@ -90,7 +102,7 @@ function doMove(object, dx, dy)
     }
     else if (current_tile == rampTile(-dx, -dy))
     {
-        var next_tile_ground2 = tile_at(object.x + dx, object.y + dy, object.h - 2)
+        var next_tile_ground2 = tileAt(object.x + dx, object.y + dy, object.h - 2)
         if (!next_tile_ground && next_tile_ground2)
         {
             object.x += dx
@@ -108,6 +120,72 @@ function makeBuffer(gl, target, data)
     return bo
 }
 
+function imagesForTile(planes, x, y, h)
+{
+    var tiles = []
+    var tile = tileAt(x, y, h)
+    if (tile)
+    {
+        tiles.push(tile)
+        
+        if (sTileAt(x - 1, y, h + 1))
+        {
+            tiles.push('Shadow West')
+        }
+        else
+        {
+            if (sTileAt(x - 1, y + 1, h + 1))
+            {
+                tiles.push('Shadow South West')
+            }
+            if (sTileAt(x - 1, y - 1, h + 1) && !sTileAt(x, y - 1, h + 1))
+            {
+                tiles.push('Shadow North West')
+            }
+        }
+
+        if (sTileAt(x + 1, y, h + 1))
+        {
+            tiles.push('Shadow East')
+        }
+        else
+        {
+            if (sTileAt(x + 1, y + 1, h + 1))
+            {
+                tiles.push('Shadow South East')
+            }
+            if (sTileAt(x + 1, y - 1, h + 1) && !sTileAt(x, y - 1, h + 1))
+            {
+                tiles.push('Shadow North East')
+            }
+        }
+
+        if (sTileAt(x, y - 1, h + 1))
+        {
+            tiles.push('Shadow North')
+        }
+
+        if (sTileAt(x, y + 1, h + 1))
+        {
+            tiles.push('Shadow South')
+        }
+        
+        if (sTileAt(x - 1, y + 1, h) && !sTileAt(x, y + 1, h))
+        {
+            tiles.push('Shadow Side West')
+        }
+    }
+    else
+    {
+        if (sTileAt(x, y + 1, h + 1) && !sTileAt(x, y, h + 1))
+        {
+            tiles.push('Shadow South')
+        }
+    }
+    
+    return tiles
+}
+
 function loadPlanes(gl, width, height, planes)
 {
     for (var y = 0; y < height; ++y)
@@ -122,27 +200,29 @@ function loadPlanes(gl, width, height, planes)
         {
             for (var h = 0; h < planes.size(); ++h)
             {
-                tile = planes[h][x + y * width]
-                if (!tile) continue
+                var tiles = imagesForTile(planes, x, y, h)
                 
                 var bx = (x + HACK_OFFSET) * TILE_WIDTH
                 var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
                     h * TILE_FRONT_HEIGHT
-                pos_array = pos_array.concat([
-                    bx, by,
-                    bx + TILE_WIDTH, by,
-                    bx + TILE_WIDTH, by + TILE_HEIGHT,
-                    bx, by + TILE_HEIGHT])
-                var m = tilemetrics[tile]
-                if (!m) console.error('No metrics for ' + tile)
-                tc_array = tc_array.concat([
-                    m.x      , m.y      ,
-                    m.x + m.w, m.y      ,
-                    m.x + m.w, m.y + m.h,
-                    m.x      , m.y + m.h ])
-                e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
-                ix += 4
-                e_count += 6
+                tiles.each(function (tile)
+                {
+                    pos_array = pos_array.concat([
+                        bx, by,
+                        bx + TILE_WIDTH, by,
+                        bx + TILE_WIDTH, by + TILE_HEIGHT,
+                        bx, by + TILE_HEIGHT])
+                    var m = tilemetrics[tile]
+                    if (!m) console.error('No metrics for ' + tile)
+                    tc_array = tc_array.concat([
+                        m.x      , m.y      ,
+                        m.x + m.w, m.y      ,
+                        m.x + m.w, m.y + m.h,
+                        m.x      , m.y + m.h ])
+                    e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
+                    ix += 4
+                    e_count += 6
+                })
             }
         }
         
