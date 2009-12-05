@@ -4,12 +4,11 @@ height = 1
 vbo = null
 ebo = null
 program = null
+image = null
 texture = null
 
-function init()
+function makeBufferObjects(gl)
 {
-    var gl = initWebGL('game')
-    
     var quadarray = new WebGLFloatArray([
         100, 100, 300, 100, 300, 300, 100, 300, // vertices
         0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, // texcoords
@@ -28,13 +27,41 @@ function init()
     if (!ebo) console.log("Failed to create ebo")
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexarray, gl.STATIC_DRAW)
+}
+
+function init()
+{
+    var gl = initWebGL('game')
+    makeBufferObjects(gl)
     
-    program = loadProgram(gl, 'pixels-vert', 'boring-frag')
-    if (!program) console.log("Program failed to load")
+    var resman = new ResourceManager(
+        7,
+        function (name) // progress
+        {
+            console.log('Loaded: ' + name)
+            $('progress-bar').style.width = resman.percentComplete() + '%'
+        },
+        function (name) // success
+        {
+            $('progress-box').style.visibility = 'hidden'
+            $('game').style.visibility = 'visible'
+            $('framerate').style.visibility = 'visible'
+        },
+        function (name) // failure
+        {
+            $('progress-bar').style.backgroundColor = 'red'
+        })
     
-    texture = loadImageTexture(gl, 'SatouSei.png')
-    if (!texture) console.log("Texture failed to load")
-                            
+    linkProgram('shaders/pixels.vert', 'shaders/boring.frag', gl, resman, function (p)
+    {
+        program = p
+    })
+    loadTexture('PlanetCutePNG/Character%20Horn%20Girl.png', gl, resman, function(i, t)
+    {
+        image = i
+        texture = t
+    })
+    
     return gl
 }
 
@@ -58,7 +85,12 @@ function draw(gl)
     }
     
     reshape(gl)
+    gl.clearColor(1, 0, 1, 1)
+    $('framerate').backgroundColor = '#ff00ff'
     gl.clear(gl.COLOR_BUFFER_BIT)
+    
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+    gl.enable(gl.BLEND)
 
     gl.useProgram(program)
 

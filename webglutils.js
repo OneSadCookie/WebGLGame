@@ -18,103 +18,31 @@ if (!("WebGLUnsignedIntArray" in window))
 if (!("WebGLUnsignedShortArray" in window))
     WebGLUnsignedShortArray = window.CanvasUnsignedShortArray;
 
-function loadShader(gl, shaderId)
-{
-    var shaderScript = document.getElementById(shaderId)
-    if (!shaderScript) {
-        console.log("*** Error: shader script '"+shaderId+"' not found")
-        return null
-    }
-
-    if (shaderScript.type == "x-shader/x-vertex")
-        var shaderType = gl.VERTEX_SHADER
-    else if (shaderScript.type == "x-shader/x-fragment")
-        var shaderType = gl.FRAGMENT_SHADER
-    else {
-        console.log("*** Error: shader script '"+shaderId+"' of undefined type '"+shaderScript.type+"'")       
-        return null
-    }
-
-    // Create the shader object
-    var shader = gl.createShader(shaderType)
-    if (shader == null) {
-        console.log("*** Error: unable to create shader '"+shaderId+"'")       
-        return null
-    }
-
-    // Load the shader source
-    gl.shaderSource(shader, shaderScript.text)
-
-    // Compile the shader
-    gl.compileShader(shader)
-
-    // Check the compile status
-    var compiled = gl.getShaderi(shader, gl.COMPILE_STATUS)
-    if (!compiled) {
-        // Something went wrong during compilation get the error
-        var error = gl.getShaderInfoLog(shader)
-        console.log("*** Error compiling shader '"+shaderId+"':"+error)
-        gl.deleteShader(shader)
-        return null
-    }
-
-    return shader
-}
-
-function loadProgram(gl, vshader, fshader)
-{
-    // create our shaders
-    var vertexShader = loadShader(gl, vshader)
-    var fragmentShader = loadShader(gl, fshader)
-
-    if (!vertexShader || !fragmentShader)
-    {
-        console.log("Error loading program's component shaders")
-        return null
-    }
-
-    // Create the program object
-    var program = gl.createProgram()
-
-    if (!program)
-    {
-        console.log("Failed to create GL program object")
-        return null
-    }
-
-    // Attach our two shaders to the program
-    gl.attachShader (program, vertexShader)
-    gl.attachShader (program, fragmentShader)
-
-    // Link the program
-    gl.linkProgram(program)
-
-    // Check the link status
-    var linked = gl.getProgrami(program, gl.LINK_STATUS)
-    if (!linked) {
-        // something went wrong with the link
-        var error = gl.getProgramInfoLog (program)
-        console.log("Error in program linking:"+error)
-
-        gl.deleteProgram(program)
-        gl.deleteProgram(fragmentShader)
-        gl.deleteProgram(vertexShader)
-
-        return null
-    }
-    
-    return program
-}
-
-// culled from utils3d.js
 function initWebGL(canvasName)
 {
     var canvas = document.getElementById(canvasName)
     var gl
 
-    try {gl = canvas.getContext("webkit-3d") } catch(e) { }
+    try
+    {
+        gl = canvas.getContext("webkit-3d")
+    }
+    catch(e)
+    {
+        
+    }
     if (!gl)
-        try {gl = canvas.getContext("moz-webgl") } catch(e) { }
+    {
+        try
+        {
+            gl = canvas.getContext("moz-webgl")
+        }
+        catch(e)
+        {
+            
+        }
+    }
+        
     if (!gl) {
         alert("No WebGL context found")
         return null
@@ -123,61 +51,142 @@ function initWebGL(canvasName)
     return gl
 }
 
-function loadImageTexture(gl, url)
+function xhrText(url, resman, closure)
 {
-    var texture = gl.createTexture();
-    texture.image = new Image();
-    texture.image.onload = function() { doLoadImageTexture(gl, texture.image, texture) }
-    texture.image.src = url;
-    return texture;
+    new Ajax.Request(url, {
+        method: 'get',
+        onSuccess: function(transport)
+        {
+            resman.loaded('xhr of ' + url)
+            closure(transport.responseText)
+        },
+        onFailure: function(transport)
+        {
+            resman.error('xhr of ' + url)
+        }
+    })
 }
 
-function doLoadImageTexture(gl, image, texture)
+function compileShader(url, gl, shaderType, resman, closure)
 {
-    gl.enable(gl.TEXTURE_2D);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, image);
+    xhrText(url, resman, function(text)
+    {
+        var shader = gl.createShader(shaderType)
+        gl.shaderSource(shader, text)
+
+        gl.compileShader(shader)
+
+        var compiled = gl.getShaderi(shader, gl.COMPILE_STATUS)
+        if (compiled)
+        {
+            resman.loaded('shader compile of ' + url)
+            closure(shader)
+        }
+        else
+        {
+            var error = gl.getShaderInfoLog(shader)
+            console.log("*** Error compiling shader '" + url + "':" + error)
+            console.log("shader text:\n" + text + "\n")
+            gl.deleteShader(shader)
+            resman.error('shader compile of ' + url)
+        }
+    })
 }
 
-Framerate = function(id)
+function st(gl, shaderType)
 {
-    this.numFramerates = 10;
-    this.framerateUpdateInterval = 500;
-    this.id = id;
-
-    this.renderTime = -1;
-    this.framerates = [ ];
-    self = this;
-    var fr = function() { self.updateFramerate() }
-    setInterval(fr, this.framerateUpdateInterval);
+    if (shaderType == gl.VERTEX_SHADER) return 'vertex'
+    if (shaderType == gl.FRAGMENT_SHADER) return 'fragment'
 }
 
-Framerate.prototype.updateFramerate = function()
+function _linkProgram(gl, status, shaderType, shader, resman, closure)
 {
-    var tot = 0;
-    for (var i = 0; i < this.framerates.length; ++i)
-        tot += this.framerates[i];
+    status[shaderType] = shader
+    if (status[gl.VERTEX_SHADER] && status[gl.FRAGMENT_SHADER])
+    {
+        var program = gl.createProgram()
 
-    var framerate = tot / this.framerates.length;
-    framerate = Math.round(framerate);
-    document.getElementById(this.id).innerHTML = framerate+" fps";
-}
+        gl.attachShader(program, status[gl.VERTEX_SHADER])
+        gl.attachShader(program, status[gl.FRAGMENT_SHADER])
 
-Framerate.prototype.snapshot = function()
-{
-    if (this.renderTime < 0)
-        this.renderTime = new Date().getTime();
-    else {
-        var newTime = new Date().getTime();
-        var t = newTime - this.renderTime;
-        var framerate = 1000/t;
-        this.framerates.push(framerate);
-        while (this.framerates.length > this.numFramerates)
-            this.framerates.shift();
-        this.renderTime = newTime;
+        gl.linkProgram(program)
+
+        var linked = gl.getProgrami(program, gl.LINK_STATUS)
+        if (linked)
+        {
+            resman.loaded('program link')
+            closure(program)
+        }
+        else
+        {
+            var error = gl.getProgramInfoLog(program)
+            console.log("Error linking program: " + error)
+
+            gl.deleteProgram(program)
+            gl.deleteShader(status[gl.VERTEX_SHADER])
+            gl.deleteShader(status[gl.FRAGMENT_SHADER])
+
+            resman.error('program link')
+        }
     }
+}
+
+function linkProgram(vsurl, fsurl, gl, resman, closure)
+{
+    var status = {}
+    
+    compileShader(vsurl, gl, gl.VERTEX_SHADER, resman, function(shader)
+    {
+        _linkProgram(gl, status, gl.VERTEX_SHADER, shader, resman, closure)
+    })
+    compileShader(fsurl, gl, gl.FRAGMENT_SHADER, resman, function(shader)
+    {
+        _linkProgram(gl, status, gl.FRAGMENT_SHADER, shader, resman, closure)
+    })
+}
+
+function xhrImage(url, resman, closure)
+{
+    var image = new Image()
+    image.onload = function()
+    {
+        resman.loaded('Image ' + url)
+        closure(image)
+    }
+    image.onerror = function()
+    {
+        resman.error('Image ' + url)
+    }
+    image.onabort = function()
+    {
+        resman.error('Image ' + url)
+    }
+    image.src = url
+}
+
+function loadTexture(url, gl, resman, closure)
+{
+    xhrImage(url, resman, function(image)
+    {
+        // Due to a bug in current WebKit WebGL, transparent areas of images
+        // are loaded with junk in them.  This requires a patch to the
+        // imageToTexture() function in
+        //     WebCore/platform/graphics/mac/GraphicsContext3DMac.cpp
+        // (adding a memset, or CGClearRect, or similar to zero the bitmap
+        // context's data before drawing the image).
+        // Alternatively, could potentially load an uncompressed image from
+        // a WebGLArray object, rather than loading a "real" image format
+        // from an HTMLImageElement object.
+        
+        var texture = gl.createTexture()
+        gl.enable(gl.TEXTURE_2D)
+        gl.bindTexture(gl.TEXTURE_2D, texture)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+        gl.texImage2D(gl.TEXTURE_2D, 0, image)
+        resman.loaded('Texture of ' + url)
+        closure(image, texture)
+    })
 }
