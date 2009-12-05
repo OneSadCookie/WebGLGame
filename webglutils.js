@@ -51,22 +51,6 @@ function initWebGL(canvasName)
     return gl
 }
 
-function xhrText(url, resman, closure)
-{
-    new Ajax.Request(url, {
-        method: 'get',
-        onSuccess: function(transport)
-        {
-            resman.loaded('xhr of ' + url)
-            closure(transport.responseText)
-        },
-        onFailure: function(transport)
-        {
-            resman.error('xhr of ' + url)
-        }
-    })
-}
-
 function compileShader(url, gl, shaderType, resman, closure)
 {
     xhrText(url, resman, function(text)
