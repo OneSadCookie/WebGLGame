@@ -10,6 +10,8 @@ drawCommands = []
 object_vbo = null
 object_ebo = null
 
+map = null
+inventory = null
 scroll_x = 0
 scroll_y = 0
 
@@ -21,6 +23,8 @@ TILE_GROUND_HEIGHT = 82
 TILE_FRONT_HEIGHT = 41
 TEXTURE_HEIGHT = 170
 HACK_OFFSET = 1
+INVENTORY_X_OFFSET = 20
+INVENTORY_Y_OFFSET = -20
 
 KEY_LEFT = 37
 KEY_UP = 38
@@ -50,6 +54,14 @@ function sTileAt(x, y, h)
 {
     var tile = tileAt(x, y, h)
     return tile && tile.match(/Block/)
+}
+
+function objectsAt(x, y, h)
+{
+    return map['objects'].select(function(o)
+    {
+        return o.x == x && o.y == y && o.h == h
+    })
 }
 
 function rampTile(dx, dy)
@@ -112,6 +124,22 @@ function doMove(object, dx, dy)
             object.h -= 1
         }
     }
+    
+    var os = objectsAt(object.x, object.y, object.h).reject(function(o)
+    {
+        return o == object
+    })
+    inventory = inventory.concat(os.map(function(o)
+    {
+        return o.tile
+    }))
+    map['objects'] = map['objects'].reject(function(o)
+    {
+        return os.find(function(o2)
+        {
+            return o2 == o
+        })
+    })
 }
 
 function makeBuffer(gl, target, data)
@@ -247,33 +275,26 @@ function loadPlanes(gl, width, height, planes)
     }
 }
 
-function makeDrawCommandForObject(gl, object, height)
+function makeDrawCommandForObjectAt(gl, tile, x, y)
 {
-    var pos_array = []
-    var tc_array = []
-    var e_array = []
-    
-    var x = object.x
-    var y = object.y
-    var h = object.h
-    var tile = object.tile
-    
-    var bx = (x + HACK_OFFSET) * TILE_WIDTH
-    var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
-        h * TILE_FRONT_HEIGHT
-    pos_array = pos_array.concat([
-        bx, by,
-        bx + TILE_WIDTH, by,
-        bx + TILE_WIDTH, by + TILE_HEIGHT,
-        bx, by + TILE_HEIGHT])
     var m = tilemetrics[tile]
-    if (!m) console.error('No metrics for ' + tile)
-    tc_array = tc_array.concat([
+    if (!m)
+    {
+        console.error('No metrics for ' + tile)
+        return null
+    }
+
+    var pos_array = [
+        x, y,
+        x + TILE_WIDTH, y,
+        x + TILE_WIDTH, y + TILE_HEIGHT,
+        x, y + TILE_HEIGHT]
+    var tc_array = [
         m.x      , m.y      ,
         m.x + m.w, m.y      ,
         m.x + m.w, m.y + m.h,
-        m.x      , m.y + m.h ])
-    e_array = e_array.concat([0, 1, 2, 0, 2, 3])
+        m.x      , m.y + m.h ]
+    e_array = [0, 1, 2, 0, 2, 3]
     
     gl.bindBuffer(gl.ARRAY_BUFFER, object_vbo)
     gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(pos_array.concat(tc_array)), gl.STREAM_DRAW)
@@ -290,6 +311,15 @@ function makeDrawCommandForObject(gl, object, height)
         'image': images['tiles'],
         'mode': gl.TRIANGLES
     }
+}
+
+function makeDrawCommandForObject(gl, object, height)
+{
+    var bx = (object.x + HACK_OFFSET) * TILE_WIDTH
+    var by = (height - object.y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
+        object.h * TILE_FRONT_HEIGHT
+    
+    return makeDrawCommandForObjectAt(gl, object.tile, bx, by)
 }
 
 function init()
@@ -345,6 +375,7 @@ function init()
             loadPlanes(gl, map['width'], map['height'], map['planes'])
             
             update_scroll()
+            inventory = []
         })
     })
     
@@ -441,6 +472,19 @@ function draw(gl)
                     makeDrawCommandForObject(gl, object, map['height']))
             }
         })
+    })
+    
+    gl.uniform2f(
+        gl.getUniformLocation(program, 'scroll'),
+        0, 0)
+    x = INVENTORY_X_OFFSET
+    y = height - INVENTORY_Y_OFFSET - TILE_HEIGHT
+    inventory.each(function(tile)
+    {
+        drawCommand(
+            gl,
+            makeDrawCommandForObjectAt(gl, tile, x, y))
+        x += TILE_WIDTH + INVENTORY_X_OFFSET
     })
     
     gl.flush()
