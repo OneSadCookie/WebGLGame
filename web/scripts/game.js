@@ -89,6 +89,11 @@ function rampTile(dx, dy)
     console.log('Weird dx/dy combination in rampTile')
 }
 
+function passable(tile)
+{
+    return !tile || tile == 'Door Tall Open'
+}
+
 function doMove(object, dx, dy)
 {
     var new_x = object.x + dx
@@ -101,44 +106,54 @@ function doMove(object, dx, dy)
     }
     
     var current_tile = tileAt(object.x, object.y, object.h - 1)
-    var next_tile_wall = tileAt(object.x + dx, object.y + dy, object.h)
-    var next_tile_ground = tileAt(object.x + dx, object.y + dy, object.h - 1)
-    if (!next_tile_wall && next_tile_ground)
+    var next_tile_wall = tileAt(new_x, new_y, object.h)
+    var next_tile_ground = tileAt(new_x, new_y, object.h - 1)
+    if (passable(next_tile_wall) && next_tile_ground)
     {
-        object.x += dx
-        object.y += dy
+        object.x = new_x
+        object.y = new_y
+    }
+    else if (next_tile_wall == 'Door Tall Closed')
+    {
+        if (inventory.indexOf('Key') >= 0)
+        {
+            map['planes'][object.h][new_x + map['width'] * new_y] = 'Door Tall Open'
+            inventory.splice(inventory.indexOf('Key'), 1)
+            object.x = new_x
+            object.y = new_y
+            
+            // FIXME this leaks some VBOs, but it doesn't happen often,
+            // should be fixed when WebGL matures and gives OpenGL objects
+            // finalizers, and isn't easy to fix here and now.
+            drawCommands[new_y] = null
+        }
     }
     else if (next_tile_wall == rampTile(dx, dy))
     {
-        object.x += dx
-        object.y += dy
+        object.x = new_x
+        object.y = new_y
         object.h += 1
     }
     else if (current_tile == rampTile(-dx, -dy))
     {
-        var next_tile_ground2 = tileAt(object.x + dx, object.y + dy, object.h - 2)
+        var next_tile_ground2 = tileAt(new_x, new_y, object.h - 2)
         if (!next_tile_ground && next_tile_ground2)
         {
-            object.x += dx
-            object.y += dy
+            object.x = new_x
+            object.y = new_y
             object.h -= 1
         }
     }
     
-    var os = objectsAt(object.x, object.y, object.h).reject(function(o)
-    {
-        return o == object
-    })
+    var os = objectsAt(object.x, object.y, object.h)
+    os.splice(0, 1) // remove the player
     inventory = inventory.concat(os.map(function(o)
     {
         return o.tile
     }))
     map['objects'] = map['objects'].reject(function(o)
     {
-        return os.find(function(o2)
-        {
-            return o2 == o
-        })
+        return os.indexOf(o) >= 0
     })
 }
 
@@ -216,62 +231,67 @@ function imagesForTile(planes, x, y, h)
     return tiles
 }
 
+function loadYSlice(gl, y, width, height, planes)
+{
+    var pos_array = []
+    var tc_array = []
+    var e_array = []
+    var ix = 0
+    var e_count = 0
+    
+    for (var x = 0; x < width; ++x)
+    {
+        for (var h = 0; h < planes.size(); ++h)
+        {
+            var tiles = imagesForTile(planes, x, y, h)
+            
+            var bx = (x + HACK_OFFSET) * TILE_WIDTH
+            var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
+                h * TILE_FRONT_HEIGHT
+            tiles.each(function (tile)
+            {
+                pos_array = pos_array.concat([
+                    bx, by,
+                    bx + TILE_WIDTH, by,
+                    bx + TILE_WIDTH, by + TILE_HEIGHT,
+                    bx, by + TILE_HEIGHT])
+                var m = tilemetrics[tile]
+                if (!m) console.error('No metrics for ' + tile)
+                tc_array = tc_array.concat([
+                    m.x      , m.y      ,
+                    m.x + m.w, m.y      ,
+                    m.x + m.w, m.y + m.h,
+                    m.x      , m.y + m.h ])
+                e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
+                ix += 4
+                e_count += 6
+            })
+        }
+    }
+    
+    return {
+        'vbo': makeBuffer(
+            gl,
+            gl.ARRAY_BUFFER,
+            new WebGLFloatArray(pos_array.concat(tc_array))),
+        'pos_offset': 0,
+        'tc_offset': ix * 8,
+        'ebo': makeBuffer(
+            gl,
+            gl.ELEMENT_ARRAY_BUFFER,
+            new WebGLUnsignedShortArray(e_array)),
+        'count': e_count,
+        'texture': textures['tiles'],
+        'image': images['tiles'],
+        'mode': gl.TRIANGLES
+    }
+}
+
 function loadPlanes(gl, width, height, planes)
 {
     for (var y = 0; y < height; ++y)
     {
-        var pos_array = []
-        var tc_array = []
-        var e_array = []
-        var ix = 0
-        var e_count = 0
-        
-        for (var x = 0; x < width; ++x)
-        {
-            for (var h = 0; h < planes.size(); ++h)
-            {
-                var tiles = imagesForTile(planes, x, y, h)
-                
-                var bx = (x + HACK_OFFSET) * TILE_WIDTH
-                var by = (height - y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT +
-                    h * TILE_FRONT_HEIGHT
-                tiles.each(function (tile)
-                {
-                    pos_array = pos_array.concat([
-                        bx, by,
-                        bx + TILE_WIDTH, by,
-                        bx + TILE_WIDTH, by + TILE_HEIGHT,
-                        bx, by + TILE_HEIGHT])
-                    var m = tilemetrics[tile]
-                    if (!m) console.error('No metrics for ' + tile)
-                    tc_array = tc_array.concat([
-                        m.x      , m.y      ,
-                        m.x + m.w, m.y      ,
-                        m.x + m.w, m.y + m.h,
-                        m.x      , m.y + m.h ])
-                    e_array = e_array.concat([ix + 0, ix + 1, ix + 2, ix + 0, ix + 2, ix + 3])
-                    ix += 4
-                    e_count += 6
-                })
-            }
-        }
-        
-        drawCommands.push({
-            'vbo': makeBuffer(
-                gl,
-                gl.ARRAY_BUFFER,
-                new WebGLFloatArray(pos_array.concat(tc_array))),
-            'pos_offset': 0,
-            'tc_offset': ix * 8,
-            'ebo': makeBuffer(
-                gl,
-                gl.ELEMENT_ARRAY_BUFFER,
-                new WebGLUnsignedShortArray(e_array)),
-            'count': e_count,
-            'texture': textures['tiles'],
-            'image': images['tiles'],
-            'mode': gl.TRIANGLES
-        })
+        drawCommands.push(loadYSlice(gl, y, width, height, planes))
     }
 }
 
@@ -459,8 +479,15 @@ function draw(gl)
     gl.enableVertexAttribArray(pos_loc)
     gl.enableVertexAttribArray(tc_loc)
     
-    drawCommands.each(function (command, y)
+    for (var y = 0; y < drawCommands.size(); ++y)
     {
+        var command = drawCommands[y]
+        if (command == null)
+        {
+            // it's been invalidated by a tile map change, recalculate
+            command = loadYSlice(gl, y, map['width'], map['height'], map['planes'])
+            drawCommands[y] = command
+        }
         drawCommand(gl, command)
         
         map['objects'].each(function(object)
@@ -472,7 +499,7 @@ function draw(gl)
                     makeDrawCommandForObject(gl, object, map['height']))
             }
         })
-    })
+    }
     
     gl.uniform2f(
         gl.getUniformLocation(program, 'scroll'),
