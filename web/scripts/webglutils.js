@@ -18,37 +18,43 @@ if (!("WebGLUnsignedIntArray" in window))
 if (!("WebGLUnsignedShortArray" in window))
     WebGLUnsignedShortArray = window.CanvasUnsignedShortArray;
 
+WEBGL_IDENTIFIERS = [
+    'experimental-webgl', // current standard
+    'webkit-3d',          // older webkits
+    'moz-webgl'           // older geckos
+]
+
 function initWebGL(canvasName)
 {
     var canvas = document.getElementById(canvasName)
-    var gl
-
-    try
-    {
-        gl = canvas.getContext("webkit-3d")
-    }
-    catch(e)
-    {
-        
-    }
-    if (!gl)
+    
+    for (var i = 0; i < WEBGL_IDENTIFIERS.size(); ++i)
     {
         try
         {
-            gl = canvas.getContext("moz-webgl")
+            var gl = canvas.getContext(WEBGL_IDENTIFIERS[i])
+            if (gl)
+            {
+                if (!gl.getShaderParameter)
+                {
+                    // work around API change
+                    // this may not be correct for all cases
+                    gl.getShaderParameter = gl.getShaderi
+                }
+                if (!gl.getProgramParameter)
+                {
+                    // work around API change
+                    // this may not be correct for all cases
+                    gl.getProgramParameter = gl.getProgrami
+                }
+                return gl
+            }
         }
-        catch(e)
-        {
-            
-        }
+        catch(e) {}
     }
         
-    if (!gl) {
-        alert("No WebGL context found")
-        return null
-    }
-    
-    return gl
+    alert("No WebGL context found")
+    return null
 }
 
 function compileShader(url, gl, shaderType, resman, closure)
@@ -60,7 +66,7 @@ function compileShader(url, gl, shaderType, resman, closure)
 
         gl.compileShader(shader)
 
-        var compiled = gl.getShaderi(shader, gl.COMPILE_STATUS)
+        var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
         if (compiled)
         {
             resman.loaded('shader compile of ' + url)
@@ -95,7 +101,7 @@ function _linkProgram(gl, status, shaderType, shader, resman, closure)
 
         gl.linkProgram(program)
 
-        var linked = gl.getProgrami(program, gl.LINK_STATUS)
+        var linked = gl.getProgramParameter(program, gl.LINK_STATUS)
         if (linked)
         {
             resman.loaded('program link')
