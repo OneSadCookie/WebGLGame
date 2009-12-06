@@ -132,19 +132,19 @@ function linkProgram(vsurl, fsurl, gl, resman, closure)
 function xhrImage(url, resman, closure)
 {
     var image = new Image()
-    image.onload = function()
+    image.observe('load', function(event)
     {
         resman.loaded('Image ' + url)
         closure(image)
-    }
-    image.onerror = function()
+    })
+    image.observe('error', function(event)
     {
         resman.error('Image ' + url)
-    }
-    image.onabort = function()
+    })
+    image.observe('abort', function(event)
     {
         resman.error('Image ' + url)
-    }
+    })
     image.src = url
 }
 

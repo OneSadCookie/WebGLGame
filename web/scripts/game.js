@@ -9,6 +9,7 @@ tilemetrics = null
 drawCommands = []
 object_vbo = null
 object_ebo = null
+sounds = {}
 
 map = null
 inventory = null
@@ -16,6 +17,7 @@ scroll_x = 0
 scroll_y = 0
 
 TEXTURE_FILES = ['tiles']
+AUDIO_FILES = ['Pickup', 'Door', 'Locked']
 
 TILE_WIDTH = 101
 TILE_HEIGHT = 171
@@ -25,11 +27,6 @@ TEXTURE_HEIGHT = 170
 HACK_OFFSET = 1
 INVENTORY_X_OFFSET = 20
 INVENTORY_Y_OFFSET = -20
-
-KEY_LEFT = 37
-KEY_UP = 38
-KEY_RIGHT = 39
-KEY_DOWN = 40
 
 function tileAt(x, y, h)
 {
@@ -117,6 +114,7 @@ function doMove(object, dx, dy)
     {
         if (inventory.indexOf('Key') >= 0)
         {
+            sounds['Door'].play()
             map['planes'][object.h][new_x + map['width'] * new_y] = 'Door Tall Open'
             inventory.splice(inventory.indexOf('Key'), 1)
             object.x = new_x
@@ -126,6 +124,10 @@ function doMove(object, dx, dy)
             // should be fixed when WebGL matures and gives OpenGL objects
             // finalizers, and isn't easy to fix here and now.
             drawCommands[new_y] = null
+        }
+        else
+        {
+            sounds['Locked'].play()
         }
     }
     else if (next_tile_wall == rampTile(dx, dy))
@@ -147,14 +149,19 @@ function doMove(object, dx, dy)
     
     var os = objectsAt(object.x, object.y, object.h)
     os.splice(0, 1) // remove the player
-    inventory = inventory.concat(os.map(function(o)
+    if (os.size() > 0)
     {
-        return o.tile
-    }))
-    map['objects'] = map['objects'].reject(function(o)
-    {
-        return os.indexOf(o) >= 0
-    })
+        sounds['Pickup'].play()
+        inventory = inventory.concat(os.map(function(o)
+        {
+            return o.tile
+        }))
+        map['objects'] = map['objects'].reject(function(o)
+        {
+            return os.indexOf(o) >= 0
+        })
+        
+    }
 }
 
 function makeBuffer(gl, target, data)
@@ -349,13 +356,13 @@ function init()
     object_ebo = gl.createBuffer()
     
     var resman = new ResourceManager(
-        9, // total # of expected resources to load, set to 0 and watch console log if it's wrong
-        function (name) // progress
+        12, // total # of expected resources to load, set to 0 and watch console log if it's wrong
+        function(name) // progress
         {
             // console.log('Loaded: ' + name)
             $('progress-bar').style.width = resman.percentComplete() + '%'
         },
-        function (name) // success
+        function(name) // success
         {
             $('progress-box').style.visibility = 'hidden'
             $('game').style.visibility = 'visible'
@@ -363,7 +370,7 @@ function init()
             $('ack').style.visibility = 'visible'
             loaded = true
         },
-        function (name) // failure
+        function(name) // failure
         {
             $('progress-bar').style.backgroundColor = 'red'
             $('progress-box').style.borderColor = 'red'
@@ -374,12 +381,20 @@ function init()
         program = p
     })
 
-    TEXTURE_FILES.each(function (base)
+    TEXTURE_FILES.each(function(base)
     {
         loadTexture(escape('images/' + base + '.png'), gl, resman, function(i, t)
         {
             images[base] = i
             textures[base] = t
+        })
+    })
+    
+    AUDIO_FILES.each(function(base)
+    {
+        xhrAudio(escape('audio/' + base + '.wav'), resman, function(s)
+        {
+            sounds[base] = s
         })
     })
     
@@ -541,16 +556,16 @@ function keydown(event)
     pc = map['objects'][0]
     switch(event.keyCode)
     {
-    case KEY_LEFT:
+    case Event.KEY_LEFT:
         doMove(pc, -1, 0)
         break
-    case KEY_RIGHT:
+    case Event.KEY_RIGHT:
         doMove(pc,  1, 0)
         break
-    case KEY_DOWN:
+    case Event.KEY_DOWN:
         doMove(pc, 0,  1)
         break
-    case KEY_UP:
+    case Event.KEY_UP:
         doMove(pc, 0, -1)
         break
     }
