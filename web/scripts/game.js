@@ -364,6 +364,11 @@ function init()
         },
         function(name) // success
         {
+            loadPlanes(gl, map['width'], map['height'], map['planes'])
+            
+            update_scroll()
+            inventory = []
+            
             $('progress-box').style.visibility = 'hidden'
             $('game').style.visibility = 'visible'
             $('framerate').style.visibility = 'visible'
@@ -406,11 +411,6 @@ function init()
         xhrJSON('maps/map.json', resman, function(json)
         {
             map = json
-
-            loadPlanes(gl, map['width'], map['height'], map['planes'])
-            
-            update_scroll()
-            inventory = []
         })
     })
     
