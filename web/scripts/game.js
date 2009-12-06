@@ -276,6 +276,10 @@ function loadYSlice(gl, y, width, height, planes)
         }
     }
     
+    if (!images['tiles'])
+    {
+        console.error("loadYSlice called before image ready; loaded=" + loaded)
+    }
     return {
         'vbo': makeBuffer(
             gl,
@@ -328,6 +332,10 @@ function makeDrawCommandForObjectAt(gl, tile, x, y)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, object_ebo)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(e_array), gl.STREAM_DRAW)
     
+    if (!images['tiles'])
+    {
+        console.error("makeDrawCommandForObjectAt called before image ready; loaded=" + loaded)
+    }
     return {
         'vbo': object_vbo,
         'pos_offset': 0,
@@ -406,12 +414,11 @@ function init()
     xhrJSON('images/tilemetrics.json', resman, function(json)
     {
         tilemetrics = json
-        
-        // TODO load the map in parallel using a technique like program linking
-        xhrJSON('maps/map.json', resman, function(json)
-        {
-            map = json
-        })
+    })
+    
+    xhrJSON('maps/map.json', resman, function(json)
+    {
+        map = json
     })
     
     return gl
