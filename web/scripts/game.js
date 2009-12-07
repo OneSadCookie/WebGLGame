@@ -1,5 +1,5 @@
-width = 1
-height = 1
+window_width = 1
+window_height = 1
 
 loaded = false
 program = null
@@ -114,7 +114,7 @@ function placeBubble(source_x, source_y, player_x, player_y)
     bubble.style.bottom = y
     bubble.style.left = x
     bubble.style.width = 'auto'
-    bubble.style.maxWidth = width - x - INVENTORY_X_OFFSET - 30
+    bubble.style.maxWidth = window_width - x - INVENTORY_X_OFFSET - 30
     bubble.style.height = 'auto'
 }
 
@@ -501,13 +501,13 @@ function init()
 function reshape(gl)
 {
     var canvas = document.getElementById('game')
-    if (canvas.clientWidth == width && canvas.clientHeight == height)
+    if (canvas.clientWidth == window_width && canvas.clientHeight == window_height)
         return
 
-    width = canvas.clientWidth
-    height = canvas.clientHeight
+    window_width = canvas.clientWidth
+    window_height = canvas.clientHeight
     
-    gl.viewport(0, 0, width, height)
+    gl.viewport(0, 0, window_width, window_height)
 }
 
 function drawCommand(gl, command)
@@ -558,8 +558,8 @@ function draw(gl)
     gl.useProgram(program)
     gl.uniform2f(
         gl.getUniformLocation(program, 'window_size'),
-        width,
-        height)
+        window_width,
+        window_height)
     var bx = (scroll_x + HACK_OFFSET) * TILE_WIDTH
     var by = (map['height'] - scroll_y - 1 + HACK_OFFSET) * TILE_GROUND_HEIGHT
     gl.uniform2f(
@@ -601,7 +601,7 @@ function draw(gl)
         gl.getUniformLocation(program, 'scroll'),
         0, 0)
     x = INVENTORY_X_OFFSET
-    y = height - INVENTORY_Y_OFFSET - TILE_HEIGHT
+    y = window_height - INVENTORY_Y_OFFSET - TILE_HEIGHT
     inventory.each(function(tile)
     {
         drawCommand(

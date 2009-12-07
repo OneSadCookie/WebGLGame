@@ -57,6 +57,7 @@ a {
 #bubble {
     font-family: 'Helvetica';
     font-size: 12pt;
+    /* css3 border-image doesn't work... */
     -webkit-border-image: url(../images/speech-up-right.png) 85 30 30 30 / 85 30 30 30 stretch stretch;
     margin: -30 -30 -30 -30;
     position:absolute;
