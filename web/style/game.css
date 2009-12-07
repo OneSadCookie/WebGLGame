@@ -53,3 +53,25 @@ a {
     height: 100%;
     left:0;
 }
+
+#bubble {
+    font-family: 'Helvetica';
+    font-size: 12pt;
+    -webkit-border-image: url(../images/speech-up-right.png) 85 30 30 30 / 85 30 30 30 stretch stretch;
+    margin: -30 -30 -30 -30;
+    position:absolute;
+    text-shadow: white 1px 1px 1px;
+    visibility: hidden;
+    /* hacks to put it in a place where it won't cause scrollbars.
+       I don't understand why these values are magical. */
+    width:100px;
+    height:100px;
+    top:100px;
+    left:100px;
+}
+
+#bubble-next {
+    float:right;
+    text-decoration:none;
+    color:black;
+}

@@ -91,6 +91,84 @@ function passable(tile)
     return !tile || tile == 'Door Tall Open'
 }
 
+function removeFromWorld(o)
+{
+    map['objects'] = map['objects'].reject(function(o2)
+    {
+        return o2 == o
+    })
+}
+
+function banishBubble()
+{
+    $('bubble').style.visibility = 'hidden'
+}
+
+function placeBubble(source_x, source_y, player_x, player_y)
+{
+    bubble = $('bubble')
+    x = (source_x - scroll_x + HACK_OFFSET) * TILE_WIDTH
+    y = (source_y + scroll_y + 0.5) * TILE_GROUND_HEIGHT
+    bubble.style.top = 'auto'
+    bubble.style.right = 'auto'
+    bubble.style.bottom = y
+    bubble.style.left = x
+    bubble.style.width = 'auto'
+    bubble.style.maxWidth = width - x - INVENTORY_X_OFFSET - 30
+    bubble.style.height = 'auto'
+}
+
+ALYNA_SPEECH = "Hello, my name is something suitably fantasy-ish " +
+    "to appease, without being so unlikely as to detract from " +
+    "the sense of reality of the world.  Perhaps &#x201c;Alyna&#x201d;. " +
+    "If I were a real NPC, I might have something witty or helpful to " +
+    "say, but I'm not, so I don't."
+
+function interactWithAdjacentObjects_allowsMove(os)
+{
+    // I don't like that this function has side effects as well as returning
+    // boolean for passable/not, but...
+    
+    var playedPickUp = false
+    var canMove = true
+    var needBubble = false
+    os.each(function(o)
+    {
+        if (o.tile == 'Key')
+        {
+            if (!playedPickUp)
+            {
+                playedPickUp = true
+                sounds['Pickup'].play()
+            }
+            inventory.push('Key')
+            removeFromWorld(o)
+        }
+        else if (o.tile == 'Character Horn Girl')
+        {
+            canMove = false
+            needBubble = true
+            $('bubble-speech').innerHTML = ALYNA_SPEECH
+            placeBubble(o.x, o.y, map['objects'][0].x, map['objects'][0].y)
+        }
+        else
+        {
+            console.error('Interaction with unknown object: ' + o.tile)
+        }
+    })
+    
+    if (needBubble)
+    {
+        $('bubble').style.visibility = 'visible'
+    }
+    else
+    {
+        $('bubble').style.visibility = 'hidden'
+    }
+    
+    return canMove
+}
+
 function doMove(object, dx, dy)
 {
     var new_x = object.x + dx
@@ -105,10 +183,14 @@ function doMove(object, dx, dy)
     var current_tile = tileAt(object.x, object.y, object.h - 1)
     var next_tile_wall = tileAt(new_x, new_y, object.h)
     var next_tile_ground = tileAt(new_x, new_y, object.h - 1)
-    if (passable(next_tile_wall) && next_tile_ground)
+     if (passable(next_tile_wall) && next_tile_ground)
     {
-        object.x = new_x
-        object.y = new_y
+        var os = objectsAt(new_x, new_y, object.h)
+        if (interactWithAdjacentObjects_allowsMove(os))
+        {
+            object.x = new_x
+            object.y = new_y
+        }
     }
     else if (next_tile_wall == 'Door Tall Closed')
     {
@@ -132,35 +214,27 @@ function doMove(object, dx, dy)
     }
     else if (next_tile_wall == rampTile(dx, dy))
     {
-        object.x = new_x
-        object.y = new_y
-        object.h += 1
+        var os = objectsAt(new_x, new_y, object.h + 1)
+        if (interactWithAdjacentObjects_allowsMove(os))
+        {
+            object.x = new_x
+            object.y = new_y
+            object.h += 1
+        }
     }
     else if (current_tile == rampTile(-dx, -dy))
     {
         var next_tile_ground2 = tileAt(new_x, new_y, object.h - 2)
         if (!next_tile_ground && next_tile_ground2)
         {
-            object.x = new_x
-            object.y = new_y
-            object.h -= 1
+            var os = objectsAt(new_x, new_y, object.h - 1)
+            if (interactWithAdjacentObjects_allowsMove(os))
+            {
+                object.x = new_x
+                object.y = new_y
+                object.h -= 1
+            }
         }
-    }
-    
-    var os = objectsAt(object.x, object.y, object.h)
-    os.splice(0, 1) // remove the player
-    if (os.size() > 0)
-    {
-        sounds['Pickup'].play()
-        inventory = inventory.concat(os.map(function(o)
-        {
-            return o.tile
-        }))
-        map['objects'] = map['objects'].reject(function(o)
-        {
-            return os.indexOf(o) >= 0
-        })
-        
     }
 }
 
