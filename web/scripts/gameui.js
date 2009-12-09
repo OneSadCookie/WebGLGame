@@ -360,9 +360,66 @@ function draw(gl)
     }
 }
 
-function update_scroll()
+TileChangeEvent.prototype.updateUI = function ()
 {
-    scroll_x = map['objects'][0].x - 4
-    scroll_y = map['objects'][0].y + 1
+    if (this.to == 'Door Tall Open')
+    {
+        sounds['Door'].play()
+    }
+    
+    // FIXME this leaks some VBOs, but it doesn't happen often,
+    // should be fixed when WebGL matures and gives OpenGL objects
+    // finalizers, and isn't easy to fix here and now.
+    drawCommands[this.y] = null
 }
 
+ObjectRemoveEvent.prototype.updateUI = function () {}
+
+ObjectMoveEvent.prototype.updateUI = function ()
+{
+    if (this.object == map['objects'][0])
+    {
+        $('bubble').style.visibility = 'hidden'
+        scroll_x = this.object.x - 4
+        scroll_y = this.object.y + 1
+    }
+}
+
+ObjectFailedMoveEvent.prototype.updateUI = function ()
+{
+    if (this.block == 'Door Tall Closed')
+    {
+        sounds['Locked'].play()
+    }
+}
+
+InventoryAddEvent.prototype.updateUI = function ()
+{
+    sounds['Pickup'].play()
+}
+
+InventoryRemoveEvent.prototype.updateUI = function () {}
+
+SpeechEvent.prototype.updateUI = function ()
+{
+    $('bubble-speech').innerHTML = this.text
+    placeBubble(
+        this.object.x,
+        this.object.y,
+        map['objects'][0].x,
+        map['objects'][0].y)
+    $('bubble').style.visibility = 'visible'
+}
+
+CancelSpeechEvent.prototype.updateUI = function ()
+{
+    banishBubble()
+}
+
+function updateUI(events)
+{
+    events.each(function (e)
+    {
+        e.updateUI()
+    })
+}

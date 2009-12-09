@@ -1,119 +1,5 @@
 loaded = false
 
-function interactWithAdjacentObjects_allowsMove(os)
-{
-    // I don't like that this function has side effects as well as returning
-    // boolean for passable/not, but...
-    
-    var playedPickUp = false
-    var canMove = true
-    var needBubble = false
-    os.each(function(o)
-    {
-        if (o.tile == 'Key')
-        {
-            if (!playedPickUp)
-            {
-                playedPickUp = true
-                sounds['Pickup'].play()
-            }
-            inventory.push('Key')
-            removeFromWorld(o)
-        }
-        else if (o.tile == 'Character Horn Girl')
-        {
-            canMove = false
-            needBubble = true
-            $('bubble-speech').innerHTML = ALYNA_SPEECH
-            placeBubble(o.x, o.y, map['objects'][0].x, map['objects'][0].y)
-        }
-        else
-        {
-            console.error('Interaction with unknown object: ' + o.tile)
-        }
-    })
-    
-    if (needBubble)
-    {
-        $('bubble').style.visibility = 'visible'
-    }
-    else
-    {
-        $('bubble').style.visibility = 'hidden'
-    }
-    
-    return canMove
-}
-
-function doMove(object, dx, dy)
-{
-    var new_x = object.x + dx
-    var new_y = object.y + dy
-    
-     if (new_x >= map['width']  || new_x < 0 ||
-         new_y >= map['height'] || new_y < 0)
-    {
-        return
-    }
-    
-    var current_tile = tileAt(object.x, object.y, object.h - 1)
-    var next_tile_wall = tileAt(new_x, new_y, object.h)
-    var next_tile_ground = tileAt(new_x, new_y, object.h - 1)
-     if (passable(next_tile_wall) && next_tile_ground)
-    {
-        var os = objectsAt(new_x, new_y, object.h)
-        if (interactWithAdjacentObjects_allowsMove(os))
-        {
-            object.x = new_x
-            object.y = new_y
-        }
-    }
-    else if (next_tile_wall == 'Door Tall Closed')
-    {
-        if (inventory.indexOf('Key') >= 0)
-        {
-            sounds['Door'].play()
-            map['planes'][object.h][new_x + map['width'] * new_y] = 'Door Tall Open'
-            inventory.splice(inventory.indexOf('Key'), 1)
-            object.x = new_x
-            object.y = new_y
-            
-            // FIXME this leaks some VBOs, but it doesn't happen often,
-            // should be fixed when WebGL matures and gives OpenGL objects
-            // finalizers, and isn't easy to fix here and now.
-            drawCommands[new_y] = null
-        }
-        else
-        {
-            sounds['Locked'].play()
-        }
-    }
-    else if (next_tile_wall == rampTile(dx, dy))
-    {
-        var os = objectsAt(new_x, new_y, object.h + 1)
-        if (interactWithAdjacentObjects_allowsMove(os))
-        {
-            object.x = new_x
-            object.y = new_y
-            object.h += 1
-        }
-    }
-    else if (current_tile == rampTile(-dx, -dy))
-    {
-        var next_tile_ground2 = tileAt(new_x, new_y, object.h - 2)
-        if (!next_tile_ground && next_tile_ground2)
-        {
-            var os = objectsAt(new_x, new_y, object.h - 1)
-            if (interactWithAdjacentObjects_allowsMove(os))
-            {
-                object.x = new_x
-                object.y = new_y
-                object.h -= 1
-            }
-        }
-    }
-}
-
 function init()
 {
     var gl = initWebGL('game')
@@ -130,9 +16,14 @@ function init()
         function(name) // success
         {
             loadPlanes(gl, map['width'], map['height'], map['planes'])
-            
-            update_scroll()
             inventory = []
+            
+            // this is a bit of a hack :/
+            var pc = map['objects'][0]
+            updateUI([new ObjectMoveEvent(
+                pc,
+                pc.x, pc.y, pc.h,
+                pc.x, pc.y, pc.h)])
             
             $('progress-box').style.visibility = 'hidden'
             $('game').style.visibility = 'visible'
@@ -185,28 +76,31 @@ function start()
 {
     var gl = init()
     framerate = new Framerate('framerate')
-    setInterval(function() { draw(gl) }, 10)
+    setInterval(function() {
+        draw(gl)
+    }, 10)
 }
 
 function keydown(event)
 {
-    pc = map['objects'][0]
+    var events = []
+    var pc = map['objects'][0]
     switch(event.keyCode)
     {
     case Event.KEY_LEFT:
-        doMove(pc, -1, 0)
+        doMove(pc, -1, 0, events)
         break
     case Event.KEY_RIGHT:
-        doMove(pc,  1, 0)
+        doMove(pc,  1, 0, events)
         break
     case Event.KEY_DOWN:
-        doMove(pc, 0,  1)
+        doMove(pc, 0,  1, events)
         break
     case Event.KEY_UP:
-        doMove(pc, 0, -1)
+        doMove(pc, 0, -1, events)
         break
     }
-    update_scroll()
+    updateUI(events)
 }
 
 function keyup(event)
