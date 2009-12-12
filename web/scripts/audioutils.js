@@ -3,8 +3,8 @@ function xhrAudio(url, resman, closure)
     var audio = new Audio()
     audio.observe('canplaythrough', function(event)
     {
-        resman.loaded('Audio ' + url)
         closure(audio)
+        resman.loaded('Audio ' + url)
     })
     audio.observe('error', function(event)
     {

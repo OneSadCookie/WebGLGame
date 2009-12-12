@@ -9,8 +9,8 @@ function xhrText(url, resman, closure)
         },
         onException: function(request, exception)
         {
-            resman.error('xhr/text of ' + url)
             console.error(exception)
+            resman.error('xhr/text of ' + url)
         },
         onFailure: function(transport)
         {
@@ -31,8 +31,8 @@ function xhrJSON(url, resman, closure)
         },
         onException: function(request, exception)
         {
-            resman.error('xhr/json of ' + url)
             console.error(exception)
+            resman.error('xhr/json of ' + url)
         },
         onFailure: function(transport)
         {

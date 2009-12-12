@@ -29,6 +29,7 @@ function init()
             $('game').style.visibility = 'visible'
             $('framerate').style.visibility = 'visible'
             $('ack').style.visibility = 'visible'
+            
             loaded = true
         },
         function(name) // failure

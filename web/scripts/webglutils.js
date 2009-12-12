@@ -69,8 +69,8 @@ function compileShader(url, gl, shaderType, resman, closure)
         var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
         if (compiled)
         {
-            resman.loaded('shader compile of ' + url)
             closure(shader)
+            resman.loaded('shader compile of ' + url)
         }
         else
         {
@@ -104,8 +104,8 @@ function _linkProgram(gl, status, shaderType, shader, resman, closure)
         var linked = gl.getProgramParameter(program, gl.LINK_STATUS)
         if (linked)
         {
-            resman.loaded('program link')
             closure(program)
+            resman.loaded('program link')
         }
         else
         {
@@ -140,8 +140,8 @@ function xhrImage(url, resman, closure)
     var image = new Image()
     image.observe('load', function(event)
     {
-        resman.loaded('Image ' + url)
         closure(image)
+        resman.loaded('Image ' + url)
     })
     image.observe('error', function(event)
     {
@@ -176,7 +176,8 @@ function loadTexture(url, gl, resman, closure)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
         gl.texImage2D(gl.TEXTURE_2D, 0, image)
-        resman.loaded('Texture of ' + url)
+        
         closure(image, texture)
+        resman.loaded('Texture of ' + url)
     })
 }
