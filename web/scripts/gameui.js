@@ -351,7 +351,6 @@ function draw(gl)
         x += TILE_WIDTH + INVENTORY_X_OFFSET
     })
     
-    gl.flush()
     framerate.snapshot()
     e = gl.getError()
     if (e != 0)

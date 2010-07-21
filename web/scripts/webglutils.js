@@ -27,6 +27,8 @@ WEBGL_IDENTIFIERS = [
 function initWebGL(canvasName)
 {
     var canvas = document.getElementById(canvasName)
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     
     for (var i = 0; i < WEBGL_IDENTIFIERS.size(); ++i)
     {
