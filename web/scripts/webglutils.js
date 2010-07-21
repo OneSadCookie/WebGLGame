@@ -71,6 +71,11 @@ function compileShader(url, gl, shaderType, resman, closure)
         gl.shaderSource(shader, text)
 
         gl.compileShader(shader)
+        e = gl.getError()
+        if (e != 0)
+        {
+            console.log('compileShader: GL Error: ' + e)
+        }
 
         var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
         if (compiled)
@@ -106,6 +111,11 @@ function _linkProgram(gl, status, shaderType, shader, resman, closure)
         gl.attachShader(program, status[gl.FRAGMENT_SHADER])
 
         gl.linkProgram(program)
+        e = gl.getError()
+        if (e != 0)
+        {
+            console.log('linkProgram: GL Error: ' + e)
+        }
 
         var linked = gl.getProgramParameter(program, gl.LINK_STATUS)
         if (linked)
@@ -173,17 +183,22 @@ function loadTexture(url, gl, resman, closure)
         // Alternatively, could potentially load an uncompressed image from
         // a WebGLArray object, rather than loading a "real" image format
         // from an HTMLImageElement object.
-        
+                
         var texture = gl.createTexture()
-        gl.enable(gl.TEXTURE_2D)
         gl.bindTexture(gl.TEXTURE_2D, texture)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+        e = gl.getError()
+        if (e != 0)
+        {
+            console.log('loadTexture: GL Error: ' + e)
+        }
         
         closure(image, texture)
         resman.loaded('Texture of ' + url)
+        
     })
 }

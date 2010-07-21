@@ -30,6 +30,12 @@ function init()
             $('framerate').style.visibility = 'visible'
             $('ack').style.visibility = 'visible'
             
+            e = gl.getError()
+            if (e != 0)
+            {
+                console.log('Before loaded: GL Error: ' + e)
+            }
+            
             loaded = true
         },
         function(name) // failure
