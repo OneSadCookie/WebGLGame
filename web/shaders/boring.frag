@@ -1,6 +1,6 @@
 uniform sampler2D texture;
 
-varying vec2 texture_coords;
+varying mediump vec2 texture_coords;
 
 void main()
 {

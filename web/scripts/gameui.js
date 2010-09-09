@@ -166,13 +166,13 @@ function loadYSlice(gl, y, width, height, planes)
         'vbo': makeBuffer(
             gl,
             gl.ARRAY_BUFFER,
-            new WebGLFloatArray(pos_array.concat(tc_array))),
+            new Float32Array(pos_array.concat(tc_array))),
         'pos_offset': 0,
         'tc_offset': ix * 8,
         'ebo': makeBuffer(
             gl,
             gl.ELEMENT_ARRAY_BUFFER,
-            new WebGLUnsignedShortArray(e_array)),
+            new Uint16Array(e_array)),
         'count': e_count,
         'texture': textures['tiles'],
         'image': images['tiles'],
@@ -210,9 +210,9 @@ function makeDrawCommandForObjectAt(gl, tile, x, y)
     e_array = [0, 1, 2, 0, 2, 3]
     
     gl.bindBuffer(gl.ARRAY_BUFFER, object_vbo)
-    gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(pos_array.concat(tc_array)), gl.STREAM_DRAW)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos_array.concat(tc_array)), gl.STREAM_DRAW)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, object_ebo)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(e_array), gl.STREAM_DRAW)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(e_array), gl.STREAM_DRAW)
     
     if (!images['tiles'])
     {
