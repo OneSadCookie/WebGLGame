@@ -97,32 +97,26 @@ println("Using \(tiles_across) × \(tiles_down); \(total_tiles) total (\(images.
 let large_image_rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixel_width, pixelsHigh: pixel_height, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: NSDeviceRGBColorSpace, bytesPerRow: pixel_width * 4, bitsPerPixel: 32)
 NSGraphicsContext.setCurrentContext(NSGraphicsContext(bitmapImageRep: large_image_rep))
 var x = 0, y = 0
-var first = true
-var f = NSOutputStream(toFileAtPath: out_json, append: false)
-f.open()
-println("{", &f)
+var json:NSMutableDictionary = [:]
 for (k, v) in images
 {
     let x_px = x * (tile_width + PAD) + PAD
     let y_px = y * (tile_height + PAD) + PAD
     v.image.drawAtPoint(NSPoint(x: x_px, y: y_px))
-    if first
-    {
-        first = false
-    }
-    else
-    {
-        println(",", &f)
-    }
     x += 1
     if x >= tiles_across
     {
         x = 0
         y += 1
     }
-    print("    \"\(k)\": {\n        \"x\": \(x_px),\n        \"y\": \(y_px),\n        \"w\": \(tile_width),\n        \"h\": \(tile_height)\n    }", &f)
+    json[k] = [
+    	"x": x_px,
+    	"y": y_px,
+    	"w": tile_width,
+    	"h": tile_height,
+    ]
 }
-println("\n}", &f)
-f.close()
+let json_data = NSJSONSerialization.dataWithJSONObject(json, options: .PrettyPrinted, error: &err)!
+json_data.writeToFile(out_json, atomically: true)
 NSGraphicsContext.currentContext().flushGraphics()
 large_image_rep.TIFFRepresentation.writeToFile(out_tiff + ".tiff", atomically: true)
