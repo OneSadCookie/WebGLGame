@@ -37,7 +37,7 @@ let out_json = String.fromCString(C_ARGV[3])!
 let fm = NSFileManager.defaultManager()
 let png_re = NSRegularExpression(pattern: "^(.*)\\.png$", options: nil, error: &err)
 var images:Dictionary<String, TileFile> = [:]
-for filename in fm.enumeratorAtPath(dir)
+for filename in fm.enumeratorAtPath(dir)!
 {
     let string_range = NSRange(location: 0, length: filename.length)
     let match:NSTextCheckingResult? = png_re.firstMatchInString(filename, options: nil, range: string_range)
